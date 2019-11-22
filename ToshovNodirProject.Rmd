@@ -1,0 +1,153 @@
+---
+title: "Stat 694 - Class Project"
+author: "Toshov Nodir"
+date: "November12, 2019"
+output:
+  word_document: default
+  pdf_document: default
+  html_notebook: default
+---
+
+# Stat694 Class Project R codes
+
+```{r}
+library(ggplot2)
+library(skimr)
+library(glmnet)
+library(DAAG)
+library(tidyverse)
+```
+
+
+
+```{r}
+library(DAAG)
+```
+
+
+```{r}
+?nassCDS
+```
+
+```{r}
+head(nassCDS)
+```
+
+
+```{r}
+skim(nassCDS)
+```
+```{r}
+Airbag <-nassCDS
+```
+
+```{r}
+summary(nassCDS)
+```
+
+
+
+```{r}
+head(Airbag)
+```
+
+
+```{r}
+contrasts(Airbag$dead)
+```
+
+```{r}
+Airbag <-Airbag%>%mutate(deadF = if_else(dead=="alive",0,1))
+Airbag$deadF <- as.factor(Airbag$deadF)
+```
+
+
+```{r}
+head(Airbag)
+levels(Airbag$deadF)
+#contrasts(Airbag$deadF)
+```
+
+
+```{r}
+n <- nrow(Airbag)
+n
+ntrain <-floor(0.7*n)
+ntrain
+#Airbag$mpg01 <- rep(0, n)
+#Airbag$mpg01[Auto$mpg > median(Auto$mpg)] <- 1
+```
+
+
+
+```{r}
+set.seed(100)
+floor(0.7*n)
+train <- sample(1:n, ntrain)
+glm1 <- glm(deadF ~ dvcat + weight + airbag +seatbelt+ageOFocc+sex+frontal+yearacc+abcat+deploy+occRole,
+data=Airbag, subset=train, family=binomial)
+summary(glm1)
+
+```
+
+```{r}
+summary(glm1)
+```
+
+```{r}
+glm2 <- step(glm1)
+```
+
+```{r}
+ summary(glm2)
+
+```
+
+#testing model 3 with abcat and sex removed
+```{r}
+glm3 <- glm(deadF ~ dvcat + weight + seatbelt + ageOFocc + 
+     frontal +  occRole,
+data=Airbag, subset=train, family=binomial)
+```
+```{r}
+summary(glm3)
+```
+MOdel 3 test confusion matrix is not better than model 2
+Keep model 2
+
+```{r}
+ Airbag_test <- Airbag[-train, ]
+ ntest <-nrow(Airbag_test)
+ntest
+ probs_test <- predict(glm2, newdata = Airbag_test,type="response")
+ preds_test <- rep(0, ntest)
+ preds_test[probs_test > 0.5] <- 1
+ head(probs_test)
+
+```
+
+
+```{r}
+tb <- table(prediction = preds_test, actual = Airbag_test$deadF)
+addmargins(tb)
+
+```
+
+
+```{r}
+# Accuracy (Percent Correctly Classified)
+ (7446+339) / ntest
+
+# Sensitivity (Percent dead Correctly Classified)
+ 35/374
+
+# Specificity (Precent alive Correctly Classified)
+ 7446/7492
+
+```
+
+```{r}
+Airbag%>%select(dead)%>% group_by(dead)%>%summarise(n=n())
+```
+
+
